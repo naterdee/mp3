@@ -12,9 +12,6 @@ var app = express();
 // Use environment defined port or 3000
 var port = process.env.PORT || 3000;
 
-// Connect to a MongoDB --> Uncomment this once you have a connection string!!
-mongoose.connect(process.env.MONGODB_URI).catch(function (err) { console.error('MongoDB connection error:', err.message); });
-
 // Allow CORS so that backend and frontend could be put on different servers
 var allowCrossDomain = function (req, res, next) {
     res.header("Access-Control-Allow-Origin", "*");
@@ -46,6 +43,26 @@ app.use(function (err, req, res, next) {
     res.status(status).json({ message: message, data: null });
 });
 
-// Start the server
-app.listen(port);
-console.log('Server running on port ' + port);
+// Start accepting requests only after MongoDB is ready.
+async function start() {
+    if (!process.env.MONGODB_URI) {
+        console.error('MongoDB connection failed: MONGODB_URI is not set.');
+        process.exitCode = 1;
+        return;
+    }
+
+    try {
+        await mongoose.connect(process.env.MONGODB_URI);
+    } catch (err) {
+        var message = err.message.replace(/mongodb(?:\+srv)?:\/\/[^\s"'<>]+/gi, '[redacted MongoDB URI]');
+        console.error('MongoDB connection failed:', err.name + ': ' + message);
+        process.exitCode = 1;
+        return;
+    }
+
+    app.listen(port, function () {
+        console.log('MongoDB connected. Server running on port ' + port);
+    });
+}
+
+start();
