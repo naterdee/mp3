@@ -202,11 +202,11 @@ async function findTasksForUser(pendingTasks, session) {
         return [];
     }
     var tasks = await Task.find({ _id: { $in: pendingTasks } }).session(session);
-    if (tasks.length !== pendingTasks.length) {
-        throw apiError(404, 'One or more referenced tasks were not found.');
-    }
     if (tasks.some(function (task) { return task.completed; })) {
         throw apiError(400, 'Completed tasks cannot be added to pendingTasks.');
+    }
+    if (tasks.length !== pendingTasks.length) {
+        throw apiError(404, 'One or more referenced tasks were not found.');
     }
     return tasks;
 }
